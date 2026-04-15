@@ -1,61 +1,66 @@
 import streamlit as st
-import numpy as np
+from sympy import symbols, sin, cos, tan, sec, csc, cot, diff, simplify, trigsimp, latex
 
-# Page Configuration
-st.set_page_config(page_title="TrigVerify - BSED Math Project", layout="centered")
+# Page Setup
+st.set_page_config(page_title="TrigSolver - BSED Math", page_icon="📐")
 
-st.title("📐 Trigonometric Identity Verifier")
-st.write("BSED Mathematics: Technology in Teaching and Learning Project")
+# Custom CSS for aesthetics
+st.markdown("""
+    <style>
+    .main { background-color: #f8f9fa; }
+    .stTextInput>div>div>input { background-color: #ffffff; border-radius: 10px; border: 2px solid #3498db; }
+    .result-card { background-color: #ffffff; padding: 20px; border-radius: 15px; border-left: 5px solid #3498db; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Sidebar Reference
-st.sidebar.header("📚 Identity Cheat Sheet")
-st.sidebar.info("""
-- **Quotient:** tan(x) = sin(x)/cos(x)
-- **Reciprocal:** sec(x) = 1/cos(x)
-- **Pythagorean:** sin²x + cos²x = 1
-- **Co-Function:** sin(π/2 - x) = cos(x)
-""")
+st.title("📐 Interactive Trig Assistant")
+st.write("Enter a trigonometric expression to see its **Identities** and **Derivative**.")
 
-# Main UI
-col1, col2 = st.columns(2)
+# User Input
+user_input = st.text_input("Enter Trig Expression (e.g., sin(x), tan(x)^2, sin(x)*cos(x))", "sin(x)")
 
-with col1:
-    lhs = st.text_input("Left-Hand Side (LHS)", placeholder="e.g., sin(x)/cos(x)")
+if user_input:
+    try:
+        # Define the symbol x
+        x = symbols('x')
+        
+        # Parse the input (replaces ^ with ** for Python)
+        expr = eval(user_input.replace('^', '**'))
+        
+        st.divider()
 
-with col2:
-    rhs = st.text_input("Right-Hand Side (RHS)", placeholder="e.g., tan(x)")
-
-if st.button("Check Identity"):
-    if lhs and rhs:
-        try:
-            # Create a range of values to test the identity
-            x = np.linspace(0, 2*np.pi, 100)
+        # 1. DERIVATIVE CALCULATION
+        st.subheader("📝 Derivative")
+        derivative = diff(expr, x)
+        st.latex(f"\\frac{{d}}{{dx}}({latex(expr)}) = {latex(derivative)}")
+        
+        # 2. IDENTITIES / SIMPLIFICATION
+        st.subheader("🔄 Equivalent Identities")
+        
+        # We use trigsimp to find the simplest form
+        simplified = trigsimp(expr)
+        
+        if simplified == expr:
+            # If trigsimp doesn't change it, we try to expand it using basic rules
+            st.info("This expression is already in its simplest fundamental form.")
             
-            # Define math functions for eval
-            safe_dict = {
-                "sin": np.sin, "cos": np.cos, "tan": np.tan,
-                "arcsin": np.arcsin, "arccos": np.arccos, "arctan": np.arctan,
-                "pi": np.pi, "x": x,
-                "sec": lambda x: 1/np.cos(x),
-                "csc": lambda x: 1/np.sin(x),
-                "cot": lambda x: 1/np.tan(x)
-            }
-            
-            # Evaluate both sides
-            left_val = eval(lhs.replace('^', '**'), {"__builtins__": None}, safe_dict)
-            right_val = eval(rhs.replace('^', '**'), {"__builtins__": None}, safe_dict)
-            
-            # Compare with tolerance
-            if np.allclose(left_val, right_val, equal_nan=True):
-                st.success("✨ Correct! This is a valid identity.")
-                st.balloons()
-            else:
-                st.error("❌ Not an identity. The values do not match.")
-                
-        except Exception as e:
-            st.warning("⚠️ Format Error! Please use (x) and proper math symbols.")
-    else:
-        st.info("Please enter expressions in both boxes.")
+            # Show basic breakdown if it's tan, sec, etc.
+            if "tan" in user_input:
+                st.latex(f"{latex(expr)} = \\frac{{\\sin(x)}}{{\\cos(x)}}")
+            elif "sec" in user_input:
+                st.latex(f"{latex(expr)} = \\frac{{1}}{{\\cos(x)}}")
+        else:
+            st.success("Alternative identity found:")
+            st.latex(f"{latex(expr)} \\equiv {latex(simplified)}")
+
+        # 3. INTERACTIVE CHALLENGE
+        st.sidebar.header("💡 Learning Challenge")
+        st.sidebar.write(f"Can you prove why the derivative of **{user_input}** is **{derivative}**?")
+        if st.sidebar.button("Show Hint"):
+            st.sidebar.write("Try using the Power Rule or Product Rule if the expression is complex!")
+
+    except Exception as e:
+        st.error("⚠️ Invalid Syntax. Please use format like `sin(x)` or `cos(x)**2`.")
 
 st.divider()
-st.caption("Tip: Use x for theta, * for multiply, and ^ for exponents (e.g., sin(x)^2).")
+st.caption("BSED Mathematics - Technology in Teaching and Learning Project")
